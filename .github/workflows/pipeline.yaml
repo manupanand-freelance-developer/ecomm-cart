@@ -1,0 +1,58 @@
+# name: Deployment pipeline
+# run-name: "${{github.event.inputs.appVersion}}"
+# on: 
+#   workflow_dispatch:
+#    inputs: # getting user unput
+#      appVersion:
+#        required: true #sending it from genkins
+# jobs: 
+#   DEV: 
+#     # environment: DEV
+#     runs-on: self-hosted 
+#     steps: | # deployment with help of ARGOCD -using argocd cli -  then kubeconfig
+#       aws eks update-kubeconfig --name dev-eks 
+#       argocd login argocd-route-url.com --username admin --password $(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" |base64 -d )
+#       argocd app create ecomm-cart --upsert --project default --sync-policy auto --repo https://github.com/manupanand-freelance-developer/project-helm --revison HEAD --path . --dest-server https://kubernetes.default.svc --dest-namespace roboshop --values env-dev/cart.yml --helm-set appVersion=${{github.event.inputs.appVersion}}
+
+#   QA: 
+#     environment: QA
+#     runs-on: self-hosted 
+#     needs: DEV
+#     steps: 
+#       - run : echo hello
+#   UAT: 
+#     environment: UAT
+#     runs-on: self-hosted 
+#     needs: QA
+#     steps: 
+#       - run : echo hello  
+#   PROD:
+#     environment: PROD 
+#     needs: UAT
+#     runs-on: self-hosted 
+#     steps: 
+#       - run : echo hello 
+
+# # from gh cli trigger workflow from genkins
+
+
+# using centralised action workflow reusable
+
+name: Deployment Pipeline 
+run-name: "${{github.event.inputs.appVersion}}"
+on: 
+  workflow_dispatch: 
+    inputs: 
+      appVersion: 
+        required: true 
+
+jobs: 
+  deploy: 
+    uses: manupanand-freelance-developer/ecomm-github-actions-central-repo/.github/workflows/pipeline.yaml@main
+    with: 
+      appVersion: "${{github.event.inputs.appVersion}}"
+      appName: ecomm-cart
+      # config-path: .github/workflows/pipeline.yaml 
+      
+    # secrets: 
+    #   envPAT: ${{secrets.}}
