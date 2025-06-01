@@ -44,6 +44,8 @@ on:
   workflow_dispatch: 
     inputs: 
       appVersion: 
+        required: true
+      appName: 
         required: true 
 
 jobs: 
@@ -51,7 +53,7 @@ jobs:
     uses: manupanand-freelance-developer/ecomm-github-actions-central-repo/.github/workflows/pipeline.yaml@main
     with: 
       appVersion: "${{github.event.inputs.appVersion}}"
-      appName: ecomm-cart
+      appName: "${{github.event.inputs.appName}}"
       # config-path: .github/workflows/pipeline.yaml 
       
     # secrets: 
