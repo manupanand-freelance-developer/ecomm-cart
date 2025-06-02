@@ -1,3 +1,4 @@
+#!/bin/bash
 # to make sure that environment variables are present before running image
 
 
