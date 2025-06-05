@@ -1,18 +1,13 @@
-const instana = require('@instana/collector');
-// init tracing
-// MUST be done before loading anything else!
-instana({
-    tracing: {
-        enabled: true
-    }
-});
-
+// newrelic log
+require('newrelic');
+// Core imports
 const redis = require('redis');
 const request = require('request');
 const bodyParser = require('body-parser');
 const express = require('express');
 const pino = require('pino');
 const expPino = require('express-pino-logger');
+
 // Prometheus
 const promClient = require('prom-client');
 const Registry = promClient.Registry;
@@ -23,23 +18,19 @@ const counter = new promClient.Counter({
     registers: [register]
 });
 
+let redisConnected = false;
+const redisHost = process.env.REDIS_HOST ||  'redis://localhost:6379';
+const catalogueHost = process.env.CATALOGUE_HOST || 'catalogue';
 
-var redisConnected = false;
-
-var redisHost = process.env.REDIS_HOST || 'redis'
-var catalogueHost = process.env.CATALOGUE_HOST || 'catalogue'
-
+// Logger setup
 const logger = pino({
     level: 'info',
     prettyPrint: false,
     useLevelLabels: true
 });
-const expLogger = expPino({
-    logger: logger
-});
+const expLogger = expPino({ logger });
 
 const app = express();
-
 app.use(expLogger);
 
 app.use((req, res, next) => {
@@ -48,38 +39,23 @@ app.use((req, res, next) => {
     next();
 });
 
-app.use((req, res, next) => {
-    let dcs = [
-        "asia-northeast2",
-        "asia-south1",
-        "europe-west3",
-        "us-east1",
-        "us-west1"
-    ];
-    let span = instana.currentSpan();
-    span.annotate('custom.sdk.tags.datacenter', dcs[Math.floor(Math.random() * dcs.length)]);
-
-    next();
-});
-
+// Body parser
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
+// -----------------------
+// Prometheus /metrics endpoint
+// -----------------------
+app.get('/metrics', async (req, res) => {
+    res.set('Content-Type', register.contentType);
+    res.end(await register.metrics());
+});
+
+// Health check
 app.get('/health', (req, res) => {
-    var stat = {
-        app: 'OK',
-        redis: redisConnected
-    };
-    res.json(stat);
+    res.json({ app: 'OK', redis: redisConnected });
 });
-
-// Prometheus
-app.get('/metrics', (req, res) => {
-    res.header('Content-Type', 'text/plain');
-    res.send(register.metrics());
-});
-
-
+///------------------------------------------------------
 // get cart with id
 app.get('/cart/:id', (req, res) => {
     redisClient.get(req.params.id, (err, data) => {
@@ -320,54 +296,35 @@ app.post('/shipping/:id', (req, res) => {
         });
     }
 });
-
+//---------------------------------------------------------------
 function mergeList(list, product, qty) {
-    var inlist = false;
-    // loop through looking for sku
-    var idx;
-    var len = list.length;
-    for(idx = 0; idx < len; idx++) {
-        if(list[idx].sku == product.sku) {
-            inlist = true;
-            break;
-        }
-    }
-
-    if(inlist) {
+    let idx = list.findIndex(i => i.sku === product.sku);
+    if (idx !== -1) {
         list[idx].qty += qty;
         list[idx].subtotal = list[idx].price * list[idx].qty;
     } else {
         list.push(product);
     }
-
     return list;
 }
 
 function calcTotal(list) {
-    var total = 0;
-    for(var idx = 0, len = list.length; idx < len; idx++) {
-        total += list[idx].subtotal;
-    }
-
-    return total;
+    return list.reduce((acc, item) => acc + item.subtotal, 0);
 }
 
 function calcTax(total) {
-    // tax @ 20%
-    return (total - (total / 1.2));
+    return total - total / 1.2;
 }
 
 function getProduct(sku) {
     return new Promise((resolve, reject) => {
-        request('http://' + catalogueHost + ':8080/product/' + sku, (err, res, body) => {
-            if(err) {
-                reject(err);
-            } else if(res.statusCode != 200) {
-                resolve(null);
-            } else {
-                // return object - body is a string
-                // TODO - catch parse error
+        request(`http://${catalogueHost}:8080/product/${sku}`, (err, res, body) => {
+            if (err) return reject(err);
+            if (res.statusCode !== 200) return resolve(null);
+            try {
                 resolve(JSON.parse(body));
+            } catch (e) {
+                reject(e);
             }
         });
     });
@@ -377,31 +334,32 @@ function saveCart(id, cart) {
     logger.info('saving cart', cart);
     return new Promise((resolve, reject) => {
         redisClient.setex(id, 3600, JSON.stringify(cart), (err, data) => {
-            if(err) {
-                reject(err);
-            } else {
-                resolve(data);
-            }
+            if (err) return reject(err);
+            resolve(data);
         });
     });
 }
 
-// connect to Redis
-var redisClient = redis.createClient({
-    host: redisHost
-});
+// -----------------------
+// Redis Connection
+// -----------------------
+
+const redisClient = redis.createClient({ url: redisHost });
 
 redisClient.on('error', (e) => {
     logger.error('Redis ERROR', e);
 });
-redisClient.on('ready', (r) => {
-    logger.info('Redis READY', r);
+
+redisClient.on('ready', () => {
+    logger.info(`Redis READY at ${redisHost}`);
     redisConnected = true;
 });
 
-// fire it up!
+// -----------------------
+// Start Server
+// -----------------------
+
 const port = process.env.CART_SERVER_PORT || '8080';
 app.listen(port, () => {
-    logger.info('Started on port', port);
+    logger.info(`Started on port ${port}`);
 });
-
