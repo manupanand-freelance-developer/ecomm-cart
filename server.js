@@ -345,21 +345,27 @@ function saveCart(id, cart) {
 // -----------------------
 
 const redisClient = redis.createClient({ url: redisHost });
-
-redisClient.on('error', (e) => {
-    logger.error('Redis ERROR', e);
-});
-
-redisClient.on('ready', () => {
-    logger.info(`Redis READY at ${redisHost}`);
-    redisConnected = true;
-});
-
+const port = process.env.CART_SERVER_PORT || '8080';
+async function startServer() {
+    try {
+        await redisClient.connect(); // <---- wait for Redis to be ready
+        logger.info(`Redis READY at ${redisHost}`);
+        redisConnected = true;
 // -----------------------
 // Start Server
 // -----------------------
 
-const port = process.env.CART_SERVER_PORT || '8080';
-app.listen(port, () => {
-    logger.info(`Started on port ${port}`);
-});
+        app.listen(port, () => {
+            logger.info(`Started on port ${port}`);
+        });
+    } catch (err) {
+        logger.error('Failed to connect to Redis:', err);
+        process.exit(1); // Exit if Redis is not connected
+    }
+}
+
+startServer();
+
+
+
+
