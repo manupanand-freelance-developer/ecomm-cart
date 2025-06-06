@@ -346,7 +346,7 @@ function saveCart(id, cart) {
 // -----------------------
 
 // const redisClient = redis.createClient({ url: redisHost });
-// const port = process.env.CART_SERVER_PORT || '8080';
+const port = process.env.CART_SERVER_PORT || '8080';
 // async function startServer() {
 //     try {
 
