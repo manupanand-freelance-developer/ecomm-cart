@@ -7,6 +7,7 @@ const bodyParser = require('body-parser');
 const express = require('express');
 const pino = require('pino');
 const expPino = require('express-pino-logger');
+require('dotenv').config();
 
 // Prometheus
 const promClient = require('prom-client');
@@ -344,28 +345,92 @@ function saveCart(id, cart) {
 // Redis Connection
 // -----------------------
 
-const redisClient = redis.createClient({ url: redisHost });
-const port = process.env.CART_SERVER_PORT || '8080';
-async function startServer() {
-    try {
-        await redisClient.connect(); // <---- wait for Redis to be ready
-        logger.info(`Redis READY at ${redisHost}`);
-        redisConnected = true;
-// -----------------------
-// Start Server
-// -----------------------
+// const redisClient = redis.createClient({ url: redisHost });
+// const port = process.env.CART_SERVER_PORT || '8080';
+// async function startServer() {
+//     try {
 
-        app.listen(port, () => {
-            logger.info(`Started on port ${port}`);
-        });
-    } catch (err) {
-        logger.error('Failed to connect to Redis:', err);
-        process.exit(1); // Exit if Redis is not connected
+//         await redisConnect();
+// // -----------------------
+// // Start Server
+// // -----------------------
+
+//         app.listen(port, () => {
+//             logger.info(`Started on port ${port}`);
+//         });
+//     } catch (err) {
+//         logger.error('Failed to start server:', err);
+//         process.exit(1); // Exit if Redis is not connected
+//     }
+// }
+// async function redisConnect() {
+//     try {
+//         logger.info(`🔄 Attempting Redis connection to ${redisHost}`);
+//         await redisClient.connect();
+//         logger.info(`✅ Redis connected at ${redisHost}`);
+//         redisConnected = true;
+//         //startServer(); // Only start the app after Redis is ready
+//     } catch (err) {
+        
+//         logger.error(`❌ Redis connection failed :${err.message}`);
+
+     
+//         setTimeout(redisLoop, 2000); // Retry after 2 seconds
+//     }
+// }
+// function redisLoop(){
+//     redisConnect().catch((err) => {
+//         logger.error(`Unhandled Redis error: ${err.message}`);
+//         logger.debug(err.stack);
+//         setTimeout(redisLoop, 2000);
+//     });
+// }
+// startServer();
+
+
+
+// Create redis client (defer actual connection)
+let redisClient = null;
+
+async function createRedisClient() {
+    const client = redis.createClient({ url: redisHost });
+
+    client.on('error', (err) => logger.error(`Redis Client Error: ${err.message}`));
+
+    await client.connect(); // Will throw if fails
+    return client;
+}
+
+async function connectToRedisWithRetry(maxRetries = 5, delayMs = 2000) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            logger.info(`🔄 Attempt ${attempt} - Connecting to Redis at ${redisHost}`);
+            redisClient = await createRedisClient();
+            logger.info(`✅ Redis connected at ${redisHost}`);
+            return;
+        } catch (err) {
+            logger.error(`❌ Redis connection attempt ${attempt} failed: ${err.message}`);
+            if (attempt < maxRetries) {
+                await new Promise(res => setTimeout(res, delayMs));
+            } else {
+                throw new Error('Failed to connect to Redis after multiple attempts');
+            }
+        }
     }
 }
 
-startServer();
+function startServer() {
+    app.listen(port, () => {
+        logger.info(`🚀 Server started on port ${port}`);
+    });
+}
 
-
-
-
+(async () => {
+    try {
+        await connectToRedisWithRetry();
+        startServer();
+    } catch (err) {
+        logger.error('❌ Critical startup failure:', err.message);
+        process.exit(1);
+    }
+})();
