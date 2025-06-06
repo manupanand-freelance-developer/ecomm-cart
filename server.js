@@ -22,6 +22,9 @@ const counter = new promClient.Counter({
 let redisConnected = false;
 const redisHost = process.env.REDIS_HOST ||  'redis://localhost:6379';
 const catalogueHost = process.env.CATALOGUE_HOST || 'catalogue';
+const port = process.env.CART_SERVER_PORT || '8080';
+var cataloguePort = process.env.CATALOGUE_PORT || '8080';
+
 
 // Logger setup
 const logger = pino({
@@ -47,9 +50,9 @@ app.use(bodyParser.json());
 // -----------------------
 // Prometheus /metrics endpoint
 // -----------------------
-app.get('/metrics', async (req, res) => {
-    res.set('Content-Type', register.contentType);
-    res.end(await register.metrics());
+app.get('/metrics', (req, res) => {
+    res.header('Content-Type', 'text/plain');
+    res.send(register.metrics());
 });
 
 // Health check
@@ -299,18 +302,34 @@ app.post('/shipping/:id', (req, res) => {
 });
 //---------------------------------------------------------------
 function mergeList(list, product, qty) {
-    let idx = list.findIndex(i => i.sku === product.sku);
-    if (idx !== -1) {
+ var inlist = false;
+    // loop through looking for sku
+    var idx;
+    var len = list.length;
+    for(idx = 0; idx < len; idx++) {
+        if(list[idx].sku == product.sku) {
+            inlist = true;
+            break;
+        }
+    }
+
+    if(inlist) {
         list[idx].qty += qty;
         list[idx].subtotal = list[idx].price * list[idx].qty;
     } else {
         list.push(product);
     }
+
     return list;
 }
 
 function calcTotal(list) {
-    return list.reduce((acc, item) => acc + item.subtotal, 0);
+    var total = 0;
+    for(var idx = 0, len = list.length; idx < len; idx++) {
+        total += list[idx].subtotal;
+    }
+
+    return total;
 }
 
 function calcTax(total) {
@@ -319,13 +338,15 @@ function calcTax(total) {
 
 function getProduct(sku) {
     return new Promise((resolve, reject) => {
-        request(`http://${catalogueHost}:8080/product/${sku}`, (err, res, body) => {
-            if (err) return reject(err);
-            if (res.statusCode !== 200) return resolve(null);
-            try {
+        request('http://' + catalogueHost + ':' + cataloguePort +'/product/' + sku, (err, res, body) => {
+            if(err) {
+                reject(err);
+            } else if(res.statusCode != 200) {
+                resolve(null);
+            } else {
+                // return object - body is a string
+                // TODO - catch parse error
                 resolve(JSON.parse(body));
-            } catch (e) {
-                reject(e);
             }
         });
     });
@@ -335,8 +356,11 @@ function saveCart(id, cart) {
     logger.info('saving cart', cart);
     return new Promise((resolve, reject) => {
         redisClient.setex(id, 3600, JSON.stringify(cart), (err, data) => {
-            if (err) return reject(err);
-            resolve(data);
+            if(err) {
+                reject(err);
+            } else {
+                resolve(data);
+            }
         });
     });
 }
@@ -346,7 +370,6 @@ function saveCart(id, cart) {
 // -----------------------
 
 // const redisClient = redis.createClient({ url: redisHost });
-const port = process.env.CART_SERVER_PORT || '8080';
 // async function startServer() {
 //     try {
 
