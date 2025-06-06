@@ -205,7 +205,7 @@ app.get('/add/:id/:sku/:qty', (req, res) => {
             return;
         }
         // does the cart already exist?
-        redisClient.get(req.params.id, (err, data) => {
+        redisClient.get(`cart:${req.params.id}`, (err, data) => {
             if(err) {
                 req.log.error('ERROR', err);
                 res.status(500).send(err);
@@ -267,7 +267,7 @@ app.get('/update/:id/:sku/:qty', (req, res) => {
     }
 
     // get the cart
-    redisClient.get(req.params.id, (err, data) => {
+    redisClient.get(`cart:${req.params.id}`, (err, data) => {
         if(err) {
             req.log.error('ERROR', err);
             res.status(500).send(err);
@@ -316,7 +316,7 @@ app.post('/shipping/:id', (req, res) => {
         res.status(400).send('shipping data missing');
     } else {
         // get the cart
-        redisClient.get(req.params.id, (err, data) => {
+        redisClient.get(`cart:${req.params.id}`, (err, data) => {
             if(err) {
                 req.log.error('ERROR', err);
                 res.status(500).send(err);
@@ -352,7 +352,7 @@ app.post('/shipping/:id', (req, res) => {
                     cart.tax = calcTax(cart.total);
 
                     // save the updated cart
-                    saveCart(req.params.id, cart).then((data) => {
+                    saveCart(`cart:${req.params.id}`, cart).then((data) => {
                         res.json(cart);
                     }).catch((err) => {
                         req.log.error(err);
