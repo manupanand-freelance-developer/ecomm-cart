@@ -370,7 +370,6 @@ function getProduct(sku) {
 }
 
 function saveCart(id, cart) {
-    function saveCart(id, cart) {
     try {
         logger.info('saving cart', cart);
         return redisClient.set(`cart:${id}`, JSON.stringify(cart), {
@@ -382,51 +381,10 @@ function saveCart(id, cart) {
     }
 }
 
-}
+
 // -----------------------
 // Redis Connection
 // -----------------------
-
-// const redisClient = redis.createClient({ url: redisHost });
-// async function startServer() {
-//     try {
-
-//         await redisConnect();
-// // -----------------------
-// // Start Server
-// // -----------------------
-
-//         app.listen(port, () => {
-//             logger.info(`Started on port ${port}`);
-//         });
-//     } catch (err) {
-//         logger.error('Failed to start server:', err);
-//         process.exit(1); // Exit if Redis is not connected
-//     }
-// }
-// async function redisConnect() {
-//     try {
-//         logger.info(`🔄 Attempting Redis connection to ${redisHost}`);
-//         await redisClient.connect();
-//         logger.info(`✅ Redis connected at ${redisHost}`);
-//         redisConnected = true;
-//         //startServer(); // Only start the app after Redis is ready
-//     } catch (err) {
-        
-//         logger.error(`❌ Redis connection failed :${err.message}`);
-
-     
-//         setTimeout(redisLoop, 2000); // Retry after 2 seconds
-//     }
-// }
-// function redisLoop(){
-//     redisConnect().catch((err) => {
-//         logger.error(`Unhandled Redis error: ${err.message}`);
-//         logger.debug(err.stack);
-//         setTimeout(redisLoop, 2000);
-//     });
-// }
-// startServer();
 
 
 
