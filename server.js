@@ -179,370 +179,370 @@ app.get('/rename/:from/:to', (req, res) => {
     });
 });
 // update/create cart
-// app.get('/add/:id/:sku/:qty', (req, res) => {
-//     // check quantity
-//     var qty = parseInt(req.params.qty);
-//     if(isNaN(qty)) {
-//         req.log.warn('quantity not a number');
-//         res.status(400).send('quantity must be a number');
-//         return;
-//     } else if(qty < 1) {
-//         req.log.warn('quantity less than one');
-//         res.status(400).send('quantity has to be greater than zero');
-//         return;
-//     }
+app.get('/add/:id/:sku/:qty', (req, res) => {
+    // check quantity
+    var qty = parseInt(req.params.qty);
+    if(isNaN(qty)) {
+        req.log.warn('quantity not a number');
+        res.status(400).send('quantity must be a number');
+        return;
+    } else if(qty < 1) {
+        req.log.warn('quantity less than one');
+        res.status(400).send('quantity has to be greater than zero');
+        return;
+    }
 
-//     // look up product details
-//     getProduct(req.params.sku).then((product) => {
-//         req.log.info('got product', product);
-//         if(!product) {
-//             res.status(404).send('product not found');
-//             return;
-//         }
-//         // is the product in stock?
-//         if(product.instock == 0) {
-//             res.status(404).send('out of stock');
-//             return;
-//         }
-//         // does the cart already exist?
-//         redisClient.get(`cart:${req.params.id}`, (err, data) => {
-//             if(err) {
-//                 req.log.error('ERROR', err);
-//                 res.status(500).send(err);
-//             } else {
-//                 var cart;
-//                 if(data == null) {
-//                     // create new cart
-//                     cart = {
-//                         total: 0,
-//                         tax: 0,
-//                         items: []
-//                     };
-//                 } else {
-//                     cart = JSON.parse(data);
-//                 }
-//                 req.log.info('got cart', cart);
-//                 // add sku to cart
-//                 var item = {
-//                     qty: qty,
-//                     sku: req.params.sku,
-//                     name: product.name,
-//                     price: product.price,
-//                     subtotal: qty * product.price
-//                 };
-//                 var list = mergeList(cart.items, item, qty);
-//                 cart.items = list;
-//                 cart.total = calcTotal(cart.items);
-//                 // work out tax
-//                 cart.tax = calcTax(cart.total);
+    // look up product details
+    getProduct(req.params.sku).then((product) => {
+        req.log.info('got product', product);
+        if(!product) {
+            res.status(404).send('product not found');
+            return;
+        }
+        // is the product in stock?
+        if(product.instock == 0) {
+            res.status(404).send('out of stock');
+            return;
+        }
+        // does the cart already exist?
+        redisClient.get(`cart:${req.params.id}`, (err, data) => {
+            if(err) {
+                req.log.error('ERROR', err);
+                res.status(500).send(err);
+            } else {
+                var cart;
+                if(data == null) {
+                    // create new cart
+                    cart = {
+                        total: 0,
+                        tax: 0,
+                        items: []
+                    };
+                } else {
+                    cart = JSON.parse(data);
+                }
+                req.log.info('got cart', cart);
+                // add sku to cart
+                var item = {
+                    qty: qty,
+                    sku: req.params.sku,
+                    name: product.name,
+                    price: product.price,
+                    subtotal: qty * product.price
+                };
+                var list = mergeList(cart.items, item, qty);
+                cart.items = list;
+                cart.total = calcTotal(cart.items);
+                // work out tax
+                cart.tax = calcTax(cart.total);
 
-//                 // save the new cart
-//                 saveCart(req.params.id, cart).then((data) => {
-//                     counter.inc(qty);
-//                     res.json(cart);
-//                 }).catch((err) => {
-//                     req.log.error(err);
-//                     res.status(500).send(err);
-//                 });
-//             }
-//         });
-//     }).catch((err) => {
-//         req.log.error(err);
-//         res.status(500).send(err);
-//     });
-// });
+                // save the new cart
+                saveCart(req.params.id, cart).then((data) => {
+                    counter.inc(qty);
+                    res.json(cart);
+                }).catch((err) => {
+                    req.log.error(err);
+                    res.status(500).send(err);
+                });
+            }
+        });
+    }).catch((err) => {
+        req.log.error(err);
+        res.status(500).send(err);
+    });
+});
 
 
 // update/create cart
-app.get('/add/:id/:sku/:qty', async (req, res) => {
-    try {
-        const qty = parseInt(req.params.qty);
-        if (isNaN(qty)) {
-            req.log.warn('quantity not a number');
-            return res.status(400).send('quantity must be a number');
-        }
-        if (qty < 1) {
-            req.log.warn('quantity less than one');
-            return res.status(400).send('quantity has to be greater than zero');
-        }
+// app.get('/add/:id/:sku/:qty', async (req, res) => {
+//     try {
+//         const qty = parseInt(req.params.qty);
+//         if (isNaN(qty)) {
+//             req.log.warn('quantity not a number');
+//             return res.status(400).send('quantity must be a number');
+//         }
+//         if (qty < 1) {
+//             req.log.warn('quantity less than one');
+//             return res.status(400).send('quantity has to be greater than zero');
+//         }
 
-        const product = await getProduct(req.params.sku);
-        req.log.info('got product', product);
+//         const product = await getProduct(req.params.sku);
+//         req.log.info('got product', product);
 
-        if (!product) {
-            return res.status(404).send('product not found');
-        }
+//         if (!product) {
+//             return res.status(404).send('product not found');
+//         }
 
-        if (product.instock === 0) {
-            return res.status(404).send('out of stock');
-        }
+//         if (product.instock === 0) {
+//             return res.status(404).send('out of stock');
+//         }
 
-        let cartData = await redisClient.get(`cart:${req.params.id}`);
-        let cart = cartData ? JSON.parse(cartData) : { total: 0, tax: 0, items: [] };
+//         let cartData = await redisClient.get(`cart:${req.params.id}`);
+//         let cart = cartData ? JSON.parse(cartData) : { total: 0, tax: 0, items: [] };
 
-        req.log.info('got cart', cart);
+//         req.log.info('got cart', cart);
 
-        const item = {
-            qty: qty,
-            sku: req.params.sku,
-            name: product.name,
-            price: product.price,
-            subtotal: qty * product.price
-        };
+//         const item = {
+//             qty: qty,
+//             sku: req.params.sku,
+//             name: product.name,
+//             price: product.price,
+//             subtotal: qty * product.price
+//         };
 
-        cart.items = mergeList(cart.items, item, qty);
-        cart.total = calcTotal(cart.items);
-        cart.tax = calcTax(cart.total);
+//         cart.items = mergeList(cart.items, item, qty);
+//         cart.total = calcTotal(cart.items);
+//         cart.tax = calcTax(cart.total);
 
-        await saveCart(req.params.id, cart);
-        counter.inc(qty);
-        res.json(cart);
+//         await saveCart(req.params.id, cart);
+//         counter.inc(qty);
+//         res.json(cart);
 
-    } catch (err) {
-        req.log.error('Error in /add route:', err);
-        res.status(500).send('Internal Server Error');
-    }
-});
+//     } catch (err) {
+//         req.log.error('Error in /add route:', err);
+//         res.status(500).send('Internal Server Error');
+//     }
+// });
 
 
 // // update quantity - remove item when qty == 0
-// app.get('/update/:id/:sku/:qty', (req, res) => {
-//     // check quantity
-//     var qty = parseInt(req.params.qty);
-//     if(isNaN(qty)) {
-//         req.log.warn('quanity not a number');
-//         res.status(400).send('quantity must be a number');
-//         return;
-//     } else if(qty < 0) {
-//         req.log.warn('quantity less than zero');
-//         res.status(400).send('negative quantity not allowed');
-//         return;
-//     }
-
-//     // get the cart
-//     redisClient.get(`cart:${req.params.id}`, (err, data) => {
-//         if(err) {
-//             req.log.error('ERROR', err);
-//             res.status(500).send(err);
-//         } else {
-//             if(data == null) {
-//                 res.status(404).send('cart not found');
-//             } else {
-//                 var cart = JSON.parse(data);
-//                 var idx;
-//                 var len = cart.items.length;
-//                 for(idx = 0; idx < len; idx++) {
-//                     if(cart.items[idx].sku == req.params.sku) {
-//                         break;
-//                     }
-//                 }
-//                 if(idx == len) {
-//                     // not in list
-//                     res.status(404).send('not in cart');
-//                 } else {
-//                     if(qty == 0) {
-//                         cart.items.splice(idx, 1);
-//                     } else {
-//                         cart.items[idx].qty = qty;
-//                         cart.items[idx].subtotal = cart.items[idx].price * qty;
-//                     }
-//                     cart.total = calcTotal(cart.items);
-//                     // work out tax
-//                     cart.tax = calcTax(cart.total);
-//                     saveCart(req.params.id, cart).then((data) => {
-//                         res.json(cart);
-//                     }).catch((err) => {
-//                         req.log.error(err);
-//                         res.status(500).send(err);
-//                     });
-//                 }
-//             }
-//         }
-//     });
-// });
-app.get('/update/:id/:sku/:qty', async (req, res) => {
-    try {
-        const qty = parseInt(req.params.qty);
-
-        if (isNaN(qty)) {
-            req.log.warn('quantity not a number');
-            return res.status(400).send('quantity must be a number');
-        }
-
-        if (qty < 0) {
-            req.log.warn('quantity less than zero');
-            return res.status(400).send('negative quantity not allowed');
-        }
-
-        const data = await redisClient.get(`cart:${req.params.id}`);
-
-        if (data === null) {
-            return res.status(404).send('cart not found');
-        }
-
-        const cart = JSON.parse(data);
-        const index = cart.items.findIndex(item => item.sku === req.params.sku);
-
-        if (index === -1) {
-            return res.status(404).send('not in cart');
-        }
-
-        if (qty === 0) {
-            cart.items.splice(index, 1);
-        } else {
-            cart.items[index].qty = qty;
-            cart.items[index].subtotal = cart.items[index].price * qty;
-        }
-
-        cart.total = calcTotal(cart.items);
-        cart.tax = calcTax(cart.total);
-
-        await saveCart(req.params.id, cart);
-
-        res.json(cart);
-    } catch (err) {
-        req.log.error('Error updating item quantity:', err);
-        res.status(500).send('Internal Server Error');
+app.get('/update/:id/:sku/:qty', (req, res) => {
+    // check quantity
+    var qty = parseInt(req.params.qty);
+    if(isNaN(qty)) {
+        req.log.warn('quanity not a number');
+        res.status(400).send('quantity must be a number');
+        return;
+    } else if(qty < 0) {
+        req.log.warn('quantity less than zero');
+        res.status(400).send('negative quantity not allowed');
+        return;
     }
+
+    // get the cart
+    redisClient.get(`cart:${req.params.id}`, (err, data) => {
+        if(err) {
+            req.log.error('ERROR', err);
+            res.status(500).send(err);
+        } else {
+            if(data == null) {
+                res.status(404).send('cart not found');
+            } else {
+                var cart = JSON.parse(data);
+                var idx;
+                var len = cart.items.length;
+                for(idx = 0; idx < len; idx++) {
+                    if(cart.items[idx].sku == req.params.sku) {
+                        break;
+                    }
+                }
+                if(idx == len) {
+                    // not in list
+                    res.status(404).send('not in cart');
+                } else {
+                    if(qty == 0) {
+                        cart.items.splice(idx, 1);
+                    } else {
+                        cart.items[idx].qty = qty;
+                        cart.items[idx].subtotal = cart.items[idx].price * qty;
+                    }
+                    cart.total = calcTotal(cart.items);
+                    // work out tax
+                    cart.tax = calcTax(cart.total);
+                    saveCart(req.params.id, cart).then((data) => {
+                        res.json(cart);
+                    }).catch((err) => {
+                        req.log.error(err);
+                        res.status(500).send(err);
+                    });
+                }
+            }
+        }
+    });
 });
+// app.get('/update/:id/:sku/:qty', async (req, res) => {
+//     try {
+//         const qty = parseInt(req.params.qty);
+
+//         if (isNaN(qty)) {
+//             req.log.warn('quantity not a number');
+//             return res.status(400).send('quantity must be a number');
+//         }
+
+//         if (qty < 0) {
+//             req.log.warn('quantity less than zero');
+//             return res.status(400).send('negative quantity not allowed');
+//         }
+
+//         const data = await redisClient.get(`cart:${req.params.id}`);
+
+//         if (data === null) {
+//             return res.status(404).send('cart not found');
+//         }
+
+//         const cart = JSON.parse(data);
+//         const index = cart.items.findIndex(item => item.sku === req.params.sku);
+
+//         if (index === -1) {
+//             return res.status(404).send('not in cart');
+//         }
+
+//         if (qty === 0) {
+//             cart.items.splice(index, 1);
+//         } else {
+//             cart.items[index].qty = qty;
+//             cart.items[index].subtotal = cart.items[index].price * qty;
+//         }
+
+//         cart.total = calcTotal(cart.items);
+//         cart.tax = calcTax(cart.total);
+
+//         await saveCart(req.params.id, cart);
+
+//         res.json(cart);
+//     } catch (err) {
+//         req.log.error('Error updating item quantity:', err);
+//         res.status(500).send('Internal Server Error');
+//     }
+// });
 
 
 // add shipping
-// app.post('/shipping/:id', (req, res) => {
-//     var shipping = req.body;
-//     if(shipping.distance === undefined || shipping.cost === undefined || shipping.location == undefined) {
-//         req.log.warn('shipping data missing', shipping);
-//         res.status(400).send('shipping data missing');
-//     } else {
-//         // get the cart
-//         redisClient.get(`cart:${req.params.id}`, (err, data) => {
-//             if(err) {
-//                 req.log.error('ERROR', err);
-//                 res.status(500).send(err);
-//             } else {
-//                 if(data == null) {
-//                     req.log.info('no cart for', req.params.id);
-//                     res.status(404).send('cart not found');
-//                 } else {
-//                     var cart = JSON.parse(data);
-//                     var item = {
-//                         qty: 1,
-//                         sku: 'SHIP',
-//                         name: 'shipping to ' + shipping.location,
-//                         price: shipping.cost,
-//                         subtotal: shipping.cost
-//                     };
-//                     // check shipping already in the cart
-//                     var idx;
-//                     var len = cart.items.length;
-//                     for(idx = 0; idx < len; idx++) {
-//                         if(cart.items[idx].sku == item.sku) {
-//                             break;
-//                         }
-//                     }
-//                     if(idx == len) {
-//                         // not already in cart
-//                         cart.items.push(item);
-//                     } else {
-//                         cart.items[idx] = item;
-//                     }
-//                     cart.total = calcTotal(cart.items);
-//                     // work out tax
-//                     cart.tax = calcTax(cart.total);
-
-//                     // save the updated cart
-//                     saveCart(`cart:${req.params.id}`, cart).then((data) => {
-//                         res.json(cart);
-//                     }).catch((err) => {
-//                         req.log.error(err);
-//                         res.status(500).send(err);
-//                     });
-//                 }
-//             }
-//         });
-//     }
-// });
-app.post('/shipping/:id', async (req, res) => {
-    const shipping = req.body;
-    
-    if (shipping.distance === undefined || shipping.cost === undefined || shipping.location === undefined) {
+app.post('/shipping/:id', (req, res) => {
+    var shipping = req.body;
+    if(shipping.distance === undefined || shipping.cost === undefined || shipping.location == undefined) {
         req.log.warn('shipping data missing', shipping);
-        return res.status(400).send('shipping data missing');
-    }
+        res.status(400).send('shipping data missing');
+    } else {
+        // get the cart
+        redisClient.get(`cart:${req.params.id}`, (err, data) => {
+            if(err) {
+                req.log.error('ERROR', err);
+                res.status(500).send(err);
+            } else {
+                if(data == null) {
+                    req.log.info('no cart for', req.params.id);
+                    res.status(404).send('cart not found');
+                } else {
+                    var cart = JSON.parse(data);
+                    var item = {
+                        qty: 1,
+                        sku: 'SHIP',
+                        name: 'shipping to ' + shipping.location,
+                        price: shipping.cost,
+                        subtotal: shipping.cost
+                    };
+                    // check shipping already in the cart
+                    var idx;
+                    var len = cart.items.length;
+                    for(idx = 0; idx < len; idx++) {
+                        if(cart.items[idx].sku == item.sku) {
+                            break;
+                        }
+                    }
+                    if(idx == len) {
+                        // not already in cart
+                        cart.items.push(item);
+                    } else {
+                        cart.items[idx] = item;
+                    }
+                    cart.total = calcTotal(cart.items);
+                    // work out tax
+                    cart.tax = calcTax(cart.total);
 
-    try {
-        const data = await redisClient.get(`cart:${req.params.id}`);
-
-        if (data === null) {
-            req.log.info('no cart for', req.params.id);
-            return res.status(404).send('cart not found');
-        }
-
-        const cart = JSON.parse(data);
-        const item = {
-            qty: 1,
-            sku: 'SHIP',
-            name: `shipping to ${shipping.location}`,
-            price: shipping.cost,
-            subtotal: shipping.cost
-        };
-
-        const index = cart.items.findIndex(i => i.sku === 'SHIP');
-        if (index === -1) {
-            cart.items.push(item);
-        } else {
-            cart.items[index] = item;
-        }
-
-        cart.total = calcTotal(cart.items);
-        cart.tax = calcTax(cart.total);
-
-        await saveCart(req.params.id, cart);
-
-        res.json(cart);
-    } catch (err) {
-        req.log.error('Error updating shipping info:', err);
-        res.status(500).send('Internal Server Error');
+                    // save the updated cart
+                    saveCart(`cart:${req.params.id}`, cart).then((data) => {
+                        res.json(cart);
+                    }).catch((err) => {
+                        req.log.error(err);
+                        res.status(500).send(err);
+                    });
+                }
+            }
+        });
     }
 });
+// app.post('/shipping/:id', async (req, res) => {
+//     const shipping = req.body;
+    
+//     if (shipping.distance === undefined || shipping.cost === undefined || shipping.location === undefined) {
+//         req.log.warn('shipping data missing', shipping);
+//         return res.status(400).send('shipping data missing');
+//     }
+
+//     try {
+//         const data = await redisClient.get(`cart:${req.params.id}`);
+
+//         if (data === null) {
+//             req.log.info('no cart for', req.params.id);
+//             return res.status(404).send('cart not found');
+//         }
+
+//         const cart = JSON.parse(data);
+//         const item = {
+//             qty: 1,
+//             sku: 'SHIP',
+//             name: `shipping to ${shipping.location}`,
+//             price: shipping.cost,
+//             subtotal: shipping.cost
+//         };
+
+//         const index = cart.items.findIndex(i => i.sku === 'SHIP');
+//         if (index === -1) {
+//             cart.items.push(item);
+//         } else {
+//             cart.items[index] = item;
+//         }
+
+//         cart.total = calcTotal(cart.items);
+//         cart.tax = calcTax(cart.total);
+
+//         await saveCart(req.params.id, cart);
+
+//         res.json(cart);
+//     } catch (err) {
+//         req.log.error('Error updating shipping info:', err);
+//         res.status(500).send('Internal Server Error');
+//     }
+// });
 
 //---------------------------------------------------------------
-// function mergeList(list, product, qty) {
-//  var inlist = false;
-//     // loop through looking for sku
-//     var idx;
-//     var len = list.length;
-//     for(idx = 0; idx < len; idx++) {
-//         if(list[idx].sku == product.sku) {
-//             inlist = true;
-//             break;
-//         }
-//     }
-
-//     if(inlist) {
-//         list[idx].qty += qty;
-//         list[idx].subtotal = list[idx].price * list[idx].qty;
-//     } else {
-//         list.push(product);
-//     }
-
-//     return list;
-// }
 function mergeList(list, product, qty) {
-    try {
-        let index = list.findIndex(item => item.sku === product.sku);
-        if (index >= 0) {
-            list[index].qty += qty;
-            list[index].subtotal = list[index].price * list[index].qty;
-        } else {
-            list.push(product);
+ var inlist = false;
+    // loop through looking for sku
+    var idx;
+    var len = list.length;
+    for(idx = 0; idx < len; idx++) {
+        if(list[idx].sku == product.sku) {
+            inlist = true;
+            break;
         }
-        return list;
-    } catch (err) {
-        logger.error('mergeList error:', err);
-        return list; // return list as-is in case of error
     }
+
+    if(inlist) {
+        list[idx].qty += qty;
+        list[idx].subtotal = list[idx].price * list[idx].qty;
+    } else {
+        list.push(product);
+    }
+
+    return list;
 }
+// function mergeList(list, product, qty) {
+//     try {
+//         let index = list.findIndex(item => item.sku === product.sku);
+//         if (index >= 0) {
+//             list[index].qty += qty;
+//             list[index].subtotal = list[index].price * list[index].qty;
+//         } else {
+//             list.push(product);
+//         }
+//         return list;
+//     } catch (err) {
+//         logger.error('mergeList error:', err);
+//         return list; // return list as-is in case of error
+//     }
+// }
 
 
 function calcTotal(list) {
