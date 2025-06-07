@@ -75,6 +75,7 @@ app.get('/health', (req, res) => {
     }
 });
 ///------------------------------------------------------
+
 // get cart with id
 app.get('/cart/:id', (req, res) => {
     redisClient.get(req.params.id, (err, data) => {
@@ -369,17 +370,17 @@ function getProduct(sku) {
 }
 
 function saveCart(id, cart) {
-    try {
-        logger.info('saving cart', cart);
-        return redisClient.set(`${id}`, JSON.stringify(cart), {
-        EX: 3600
+    logger.info('saving cart', cart);
+    return new Promise((resolve, reject) => {
+        redisClient.setex(id, 3600, JSON.stringify(cart), (err, data) => {
+            if(err) {
+                reject(err);
+            } else {
+                resolve(data);
+            }
+        });
     });
-    } catch (err) {
-        logger.error(`Failed to save cart for ID ${id}:`, err);
-        throw err; // propagate to let the caller handle it
-    }
 }
-
 // -----------------------
 // Redis Connection
 // -----------------------
